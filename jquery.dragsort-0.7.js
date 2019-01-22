@@ -1,14 +1,13 @@
-// jQuery List DragSort v0.6
+// jQuery List DragSort v0.7
 // Website: http://github.com/honestbleeps/jquery-dragsort
 
 // This code is adapted from jQuery dragsort originally at
 // http://dragsort.codeplex.com/ but no longer maintaned.
 // It provides a means of drag/sort without the need for a
 // large jQuery UI library in case that's all you need, and
-// has been updated to support jQuery 1.9+.
+// has been updated to support jQuery 3.3.1.
 
 (function($) {
-
 	$.fn.dragsort = function(options) {
 		if (options == "destroy") {
 			$(this.selector).trigger("dragsort-uninit");
@@ -21,7 +20,7 @@
 		this.each(function(i, cont) {
 
 			//if list container is table, the browser automatically wraps rows in tbody if not specified so change list container to tbody so that children returns rows as user expected
-			if ($(cont).is("table") && $(cont).children().size() == 1 && $(cont).children().is("tbody"))
+			if ($(cont).is("table") && $(cont).children().length == 1 && $(cont).children().is("tbody"))
 				cont = $(cont).children().get(0);
 
 			var newList = {
@@ -35,7 +34,7 @@
 
 				init: function() {
 					//set options to default values if not set
-					opts.tagName = $(this.container).children().size() == 0 ? "li" : $(this.container).children().get(0).tagName.toLowerCase();
+					opts.tagName = $(this.container).children().length == 0 ? "li" : $(this.container).children().get(0).tagName.toLowerCase();
 					if (opts.itemSelector == "")
 						opts.itemSelector = opts.tagName;
 					if (opts.dragSelector == "")
@@ -44,13 +43,13 @@
 						opts.placeHolderTemplate = "<" + opts.tagName + ">&nbsp;</" + opts.tagName + ">";
 
 					//listidx allows reference back to correct list variable instance
-					$(this.container).attr("data-listidx", i).mousedown(this.grabItem).bind("dragsort-uninit", this.uninit);
+					$(this.container).attr("data-listidx", i).mousedown(this.grabItem).on("dragsort-uninit", this.uninit);
 					this.styleDragHandlers(true);
 				},
 
 				uninit: function() {
 					var list = lists[$(this).attr("data-listidx")];
-					$(list.container).unbind("mousedown", list.grabItem).unbind("dragsort-uninit");
+					$(list.container).on("mousedown", list.grabItem).off("dragsort-uninit");
 					list.styleDragHandlers(false);
 				},
 
@@ -65,10 +64,10 @@
 				grabItem: function(e) {
 					var list = lists[$(this).attr("data-listidx")];
 					var item = $(e.target).closest("[data-listidx] > " + opts.tagName).get(0);
-					var insideMoveableItem = list.getItems().filter(function() { return this == item; }).size() > 0;
+					var insideMoveableItem = list.getItems().filter(function() { return this == item; }).length > 0;
 
 					//if not left click or if clicked on excluded element (e.g. text box) or not a moveable list item return
-					if (e.which != 1 || $(e.target).is(opts.dragSelectorExclude) || $(e.target).closest(opts.dragSelectorExclude).size() > 0 || !insideMoveableItem)
+					if (e.which != 1 || $(e.target).is(opts.dragSelectorExclude) || $(e.target).closest(opts.dragSelectorExclude).length > 0 || !insideMoveableItem)
 						return;
 
 					//prevents selection, stops issue on Fx where dragging hyperlink doesn't work and on IE where it triggers mousemove even though mouse hasn't moved,
@@ -88,9 +87,9 @@
 					var listElem = this;
 					var trigger = function() {
 						list.dragStart.call(listElem, e);
-						$(list.container).unbind("mousemove", trigger);
+						$(list.container).off("mousemove", trigger);
 					};
-					$(list.container).mousemove(trigger).mouseup(function() { $(list.container).unbind("mousemove", trigger); $(dragHandle).css("cursor", $(dragHandle).attr("data-cursor")); });
+					$(list.container).mousemove(trigger).mouseup(function() { $(list.container).off("mousemove", trigger); $(dragHandle).css("cursor", $(dragHandle).attr("data-cursor")); });
 				},
 
 				dragStart: function(e) {
@@ -112,7 +111,7 @@
 
 					//calculate box the dragged item can't be dragged outside of
 					if (!opts.dragBetween) {
-						var containerHeight = $(list.container).outerHeight() == 0 ? Math.max(1, Math.round(0.5 + list.getItems().size() * list.draggedItem.outerWidth() / $(list.container).outerWidth())) * list.draggedItem.outerHeight() : $(list.container).outerHeight();
+						var containerHeight = $(list.container).outerHeight() == 0 ? Math.max(1, Math.round(0.5 + list.getItems().length * list.draggedItem.outerWidth() / $(list.container).outerWidth())) * list.draggedItem.outerHeight() : $(list.container).outerHeight();
 						list.offsetLimit = $(list.container).offset();
 						list.offsetLimit.right = list.offsetLimit.left + $(list.container).outerWidth() - list.draggedItem.outerWidth();
 						list.offsetLimit.bottom = list.offsetLimit.top + containerHeight - list.draggedItem.outerHeight();
@@ -169,12 +168,12 @@
 					//misc
 					$(lists).each(function(i, l) { l.createDropTargets(); l.buildPositionTable(); });
 					list.setPos(e.pageX, e.pageY);
-					$(document).bind("mousemove", list.swapItems);
-					$(document).bind("mouseup", list.dropItem);
+					$(document).on("mousemove", list.swapItems);
+					$(document).on("mouseup", list.dropItem);
 				},
 
 				//set position of draggedItem
-				setPos: function(x, y) { 
+				setPos: function(x, y) {
 					//remove mouse offset so mouse cursor remains in same place on draggedItem instead of top left corner
 					var top = y - this.offset.top;
 					var left = x - this.offset.left;
@@ -204,7 +203,7 @@
 						y = Math.max(0, y - cont.height() - offset.top) + Math.min(0, y - offset.top);
 						x = Math.max(0, x - cont.width() - offset.left) + Math.min(0, x - offset.left);
 					}
-					
+
 					list.scroll.moveX = x == 0 ? 0 : x * opts.scrollSpeed / Math.abs(x);
 					list.scroll.moveY = y == 0 ? 0 : y * opts.scrollSpeed / Math.abs(y);
 
@@ -252,7 +251,7 @@
 						if (opts.dragEnd.apply(list.draggedItem) == false) { //if dragEnd returns false revert order
 							var pos = list.draggedItem.attr("data-origpos").split('-');
 							var nextItem = $(lists[pos[0]].container).children().not(list.draggedItem).eq(pos[1]);
-							if (nextItem.size() > 0)
+							if (nextItem.length > 0)
 								nextItem.before(list.draggedItem);
 							else if (pos[1] == 0) //was the only item in list
 								$(lists[pos[0]].container).prepend(list.draggedItem);
@@ -262,8 +261,8 @@
 					list.draggedItem.removeAttr("data-origpos");
 
 					list.draggedItem = null;
-					$(document).unbind("mousemove", list.swapItems);
-					$(document).unbind("mouseup", list.dropItem);
+					$(document).off("mousemove", list.swapItems);
+					$(document).off("mouseup", list.dropItem);
 					return false;
 				},
 
@@ -329,9 +328,9 @@
 					$(lists).each(function() {
 						var ph = $(this.container).find("[data-placeholder]");
 						var dt = $(this.container).find("[data-droptarget]");
-						if (ph.size() > 0 && dt.size() > 0)
+						if (ph.length > 0 && dt.length > 0)
 							dt.remove();
-						else if (ph.size() == 0 && dt.size() == 0) {
+						else if (ph.length == 0 && dt.length == 0) {
 							if (opts.tagName == "td")
 								$(opts.placeHolderTemplate).attr("data-droptarget", true).appendTo(this.container);
 							else
